@@ -1,13 +1,13 @@
-"""
-wal
-wal open [YY[MM[DD]]]
-wal sync [--message "custom"]
-wal find
-"""
-
 from datetime import date
 from math import log10
 import argparse
+import configparser
+import os
+
+
+DEFAULT_CONFIG_PATH = "~/.config/wal/config.ini"
+DEFAULT_LOG_DIR = "~/.local/share/wal"
+DEFAULT_EDITOR = "nvim"
 
 
 def open_log(log_date: int):
@@ -79,10 +79,30 @@ def find_subcommand(args):
     return None
 
 
-def cli():
+def parse_configuration(arg_config):
+    default_config_path = os.path.expanduser(DEFAULT_CONFIG_PATH)
+    config_path = arg_config if arg_config else default_config_path
+
+    config = configparser.ConfigParser()
+    if not os.path.exists(config_path):
+        config["DEFAULT"] = {"LOG_DIR": DEFAULT_LOG_DIR, "EDITOR": DEFAULT_EDITOR}
+        with open(config_path, "w") as config_file:
+            config.write(config_file)
+    else:
+        config.read(config_path)
+
+    # TODO: configuration validation - all required keys should be present
+
+    return config
+
+
+def parse_cli_arguments():
     parser = argparse.ArgumentParser(
         prog="wal",
         description="your personal write-ahead log",
+    )
+    parser.add_argument(
+        "-c", "--config", type=str, help="specify a custom configuration file path"
     )
     subparsers = parser.add_subparsers(dest="subparser", help="sub-commands")
 
@@ -108,7 +128,17 @@ def cli():
     parser_find = subparsers.add_parser("find", help="find logs")
     parser_find.set_defaults(func=find_subcommand)
 
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def main():
+    args = parse_cli_arguments()
+
+    config = parse_configuration(args.config)
+
+    if config:
+        print(config["DEFAULT"]["LOG_DIR"])
+        print(config["DEFAULT"]["EDITOR"])
 
     if args.subparser:
         args.func(args)
@@ -121,4 +151,4 @@ def cli():
 
 
 if __name__ == "__main__":
-    cli()
+    main()
