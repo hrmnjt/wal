@@ -3,6 +3,7 @@ from math import log10
 import argparse
 import configparser
 import os
+import subprocess
 
 
 DEFAULT_CONFIG_PATH = "~/.config/wal/config.ini"
@@ -10,7 +11,7 @@ DEFAULT_LOG_DIR = "~/.local/share/wal"
 DEFAULT_EDITOR = "nvim"
 
 
-def open_log(log_date: int):
+def open_log(log_date: int, config):
     print("opening logs")
 
     if log_date > 0:
@@ -41,7 +42,15 @@ def open_log(log_date: int):
     except ValueError as e:
         raise ValueError(f"incorrect date format; {e}")
 
-    print(f"opening {expanded_date}.md")
+    log_dir = os.path.expanduser(config["DEFAULT"]["LOG_DIR"])
+    editor = config["DEFAULT"]["EDITOR"]
+
+    os.makedirs(log_dir, exist_ok=True)
+
+    log_file_path = os.path.join(log_dir, f"{expanded_date}.md")
+    with open(log_file_path, "a"):
+        pass
+    subprocess.run([editor, log_file_path])
 
     return None
 
@@ -54,13 +63,6 @@ def sync_log():
 
 def find_log():
     print("finding logs")
-
-    return None
-
-
-def open_subcommand(args):
-    print(args)
-    open_log(args.date)
 
     return None
 
@@ -113,7 +115,6 @@ def parse_cli_arguments():
         metavar="[YYYY[MM[DD]]]",
         help="open or create a log for input date",
     )
-    parser_open.set_defaults(func=open_subcommand)
 
     parser_sync = subparsers.add_parser("sync", help="sync logs")
     parser_sync.add_argument(
@@ -141,7 +142,10 @@ def main():
         print(config["DEFAULT"]["EDITOR"])
 
     if args.subparser:
-        args.func(args)
+        if args.subparser == "open":
+            open_log(args.date, config)
+        else:
+            args.func(args)
     else:
         print("defaulting program")
 
