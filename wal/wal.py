@@ -1,8 +1,8 @@
+from argparse import ArgumentParser
+from configparser import ConfigParser
 from datetime import date
 from datetime import datetime
 from math import log10
-import argparse
-import configparser
 import os
 import subprocess
 
@@ -143,7 +143,7 @@ def parse_configuration(arg_config):
     default_config_path = os.path.expanduser(DEFAULT_CONFIG_PATH)
     config_path = arg_config if arg_config else default_config_path
 
-    config = configparser.ConfigParser()
+    config = ConfigParser()
     if not os.path.exists(config_path):
         config["DEFAULT"] = {
             "LOG_DIR": DEFAULT_LOG_DIR,
@@ -163,7 +163,7 @@ def parse_configuration(arg_config):
 
 
 def parse_cli_arguments():
-    parser = argparse.ArgumentParser(
+    parser = ArgumentParser(
         prog="wal",
         description="your personal write-ahead log",
     )
