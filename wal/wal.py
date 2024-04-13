@@ -11,11 +11,12 @@ DEFAULT_CONFIG_PATH = "~/.config/wal/config.ini"
 DEFAULT_LOG_DIR = "~/.local/share/wal"
 DEFAULT_EDITOR = "nvim"
 # FIXME: remove personal info
-DEFAULT_GIT_REMOTE_URL = "git@github.com:hrmnjt/wal-test.git"
+DEFAULT_GIT_REMOTE_URL = "git@github.com:hrmnjt/wal-test-2.git"
 # FIXME: remove personal info
 DEFAULT_GIT_USER_NAME = "hrmnjt"
 # FIXME: remove personal info
 DEFAULT_GIT_USER_EMAIL = "harman@hrmnjt.dev"
+DEFAULT_GIT_COMMIT_MESSAGE_PREFIX = "lge: updates at"
 
 
 def run_command(command, working_dir):
@@ -36,6 +37,9 @@ def run_command(command, working_dir):
 
 def open_log(log_date: int, config):
     print("opening logs")
+
+    log_dir = os.path.expanduser(config["DEFAULT"]["LOG_DIR"])
+    editor = config["DEFAULT"]["EDITOR"]
 
     if log_date > 0:
         num_digits = int(log10(log_date)) + 1
@@ -65,9 +69,6 @@ def open_log(log_date: int, config):
     except ValueError as e:
         raise ValueError(f"incorrect date format; {e}")
 
-    log_dir = os.path.expanduser(config["DEFAULT"]["LOG_DIR"])
-    editor = config["DEFAULT"]["EDITOR"]
-
     os.makedirs(log_dir, exist_ok=True)
 
     log_file_path = os.path.join(log_dir, f"{expanded_date}.md")
@@ -82,43 +83,45 @@ def sync_log(message, config):
     print(f"syncing logs using {config} and {message}")
 
     log_dir = os.path.expanduser(config["DEFAULT"]["LOG_DIR"])
-    git_remote_url = config["DEFAULT"]["GIT_REMOTE_URL"]
-    git_user_name = config["DEFAULT"]["GIT_USER_NAME"]
-    git_user_email = config["DEFAULT"]["GIT_USER_EMAIL"]
+    git_remote_url = config["SYNC"]["GIT_REMOTE_URL"]
+    git_user_name = config["SYNC"]["GIT_USER_NAME"]
+    git_user_email = config["SYNC"]["GIT_USER_EMAIL"]
+    git_commit_message_prefix = config["SYNC"]["GIT_COMMIT_MESSAGE_PREFIX"]
+
     git_dir = os.path.join(log_dir, ".git")
+
+    default_message = f"{git_commit_message_prefix} \
+        {datetime.now().strftime("%Y%m%d%H%M%S")}"
+    commit_message = message if message else default_message
+
     if not os.path.exists(git_dir):
-        print("Initializing Git repository...")
+        print("initializing Git repository...")
         init_result = run_command(["git", "init"], log_dir)
         if init_result:
             print(init_result)
 
-        print(f"Setting remote repository to {config["DEFAULT"]["GIT_REMOTE_URL"]}")
+        print(f"setting remote repository to {git_remote_url}")
         set_remote_result = run_command(
             ["git", "remote", "add", "origin", git_remote_url], log_dir
         )
         if set_remote_result:
             print(set_remote_result)
 
-        print("Configuring user name and email for repository")
+        print("configuring user name and email for repository")
         run_command(["git", "config", "user.name", git_user_name], log_dir)
         run_command(["git", "config", "user.email", git_user_email], log_dir)
 
     os.chdir(log_dir)
 
-    print("Adding all changes to staging area...")
+    print("adding all changes to staging area...")
     run_command(["git", "add", "."], log_dir)
 
-    # TODO: get default message from config
-    default_commit_message = (
-        f"lge: updates from {datetime.now().strftime("%Y%m%d%H%M%S")}"
-    )
-    commit_message = message if message else default_commit_message
-    print("Committing changes...")
+    print("committing changes...")
     commit_result = run_command(["git", "commit", "-m", commit_message], log_dir)
     if commit_result:
         print(commit_result)
 
-    print("Pushing changes to remote repository...")
+    print("pushing changes to remote repository...")
     push_result = run_command(["git", "push", "-u", "origin", "main"], log_dir)
     if push_result:
         print(push_result)
@@ -145,12 +148,12 @@ def parse_configuration(arg_config):
 
     config = ConfigParser()
     if not os.path.exists(config_path):
-        config["DEFAULT"] = {
-            "LOG_DIR": DEFAULT_LOG_DIR,
-            "EDITOR": DEFAULT_EDITOR,
+        config["DEFAULT"] = {"LOG_DIR": DEFAULT_LOG_DIR, "EDITOR": DEFAULT_EDITOR}
+        config["SYNC"] = {
             "GIT_REMOTE_URL": DEFAULT_GIT_REMOTE_URL,
             "GIT_USER_NAME": DEFAULT_GIT_USER_NAME,
             "GIT_USER_EMAIL": DEFAULT_GIT_USER_EMAIL,
+            "GIT_COMMIT_MESSAGE_PREFIX": DEFAULT_GIT_COMMIT_MESSAGE_PREFIX,
         }
         with open(config_path, "w") as config_file:
             config.write(config_file)
@@ -168,7 +171,10 @@ def parse_cli_arguments():
         description="your personal write-ahead log",
     )
     parser.add_argument(
-        "-c", "--config", type=str, help="specify a custom configuration file path"
+        "-c",
+        "--config",
+        type=str,
+        help="specify a custom configuration file path",
     )
     subparsers = parser.add_subparsers(dest="subparser", help="sub-commands")
 
