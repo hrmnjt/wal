@@ -131,19 +131,6 @@ def sync_log(message, config):
     return None
 
 
-def find_log():
-    print("finding logs")
-
-    return None
-
-
-def find_subcommand(args):
-    print(args)
-    find_log()
-
-    return None
-
-
 def parse_configuration(arg_config):
     default_config_path = os.path.expanduser(DEFAULT_CONFIG_PATH)
     config_path = arg_config if arg_config else default_config_path
@@ -212,9 +199,6 @@ def parse_cli_arguments():
         metavar="message",
         help="sync logs with custom message",
     )
-
-    parser_find = subparsers.add_parser("find", help="find logs")
-    parser_find.set_defaults(func=find_subcommand)
 
     return parser.parse_args()
 
