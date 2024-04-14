@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+from argparse import ArgumentError
 from configparser import ConfigParser
 from configparser import NoOptionError
 from configparser import NoSectionError
@@ -214,11 +215,9 @@ def main():
         elif args.subparser == "sync":
             sync_log(args.message, config)
         else:
-            args.func(args)
+            raise ArgumentError(args.subparser, "invalid subcommand")
     else:
-        print("defaulting program")
-
-    print(f"args are: {args}")
+        print("defaulting program - no action defined yet")
 
     return None
 
