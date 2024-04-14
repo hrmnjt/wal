@@ -1,5 +1,7 @@
 from argparse import ArgumentParser
 from configparser import ConfigParser
+from configparser import NoOptionError
+from configparser import NoSectionError
 from datetime import date
 from datetime import datetime
 from math import log10
@@ -160,7 +162,23 @@ def parse_configuration(arg_config):
     else:
         config.read(config_path)
 
-    # TODO: configuration validation - all required keys should be present
+    required_sections = {
+        "DEFAULT": ["LOG_DIR", "EDITOR"],
+        "SYNC": [
+            "GIT_REMOTE_URL",
+            "GIT_USER_NAME",
+            "GIT_USER_EMAIL",
+            "GIT_COMMIT_MESSAGE_PREFIX",
+        ],
+    }
+
+    for section, keys in required_sections.items():
+        if section not in config:
+            raise NoSectionError(f"missing section {section}")
+        else:
+            for key in keys:
+                if key not in config[section]:
+                    raise NoOptionError(f"missing key {key}", f"in section {section}")
 
     return config
 
